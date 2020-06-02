@@ -15,61 +15,41 @@ public class Pipeline {
     }
 
     public void run(Project project) {
+        boolean testsPassed = processTests(project);
+        boolean deploySuccessful = processDeploy(project, testsPassed);
+        processSummary(testsPassed, deploySuccessful);
+    }
 
-        /*
-            project, config
-
-            tests -> Optional: Empty - pas de tests
-                               Just true - ya des tests
-
-            new OptionalTest(project)
-                .map(p-> p.runTests())
-
-            new Workflow(project)
-                .run( p -> p.hasTests(), p->runTests(), onSuccess, onFailure)
-                .map
-
-                Pipeline.Build(project)
-                    .test(success, failure)
-                    .deploy(success, failure)
-                    .sendMail(success, failure);
-
-            test(project)
-                .orNoTest()
-                .deploy(project)
-                .orNoDeploy()
-                .sendMail()
-                .orSendNothing();
-
-         */
-        boolean testsPassed;
-        boolean deploySuccessful;
-
+    private boolean processTests(Project project) {
         if (project.hasTests()) {
             if ("success".equals(project.runTests())) {
                 log.info("Tests passed");
-                testsPassed = true;
+                return true;
             } else {
                 log.error("Tests failed");
-                testsPassed = false;
+                return false;
             }
         } else {
             log.info("No tests");
-            testsPassed = true;
+            return  true;
         }
+    }
 
+    private boolean processDeploy(Project project, boolean testsPassed) {
         if (testsPassed) {
             if ("success".equals(project.deploy())) {
                 log.info("Deployment successful");
-                deploySuccessful = true;
+                return true;
             } else {
                 log.error("Deployment failed");
-                deploySuccessful = false;
+                return false;
             }
         } else {
-            deploySuccessful = false;
+            return false;
         }
+    }
 
+    private void processSummary(boolean testsPassed, boolean deploySuccessful) {
         if (config.sendEmailSummary()) {
             log.info("Sending email");
             if (testsPassed) {
