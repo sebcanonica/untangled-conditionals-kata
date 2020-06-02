@@ -15,6 +15,33 @@ public class Pipeline {
     }
 
     public void run(Project project) {
+
+        /*
+            project, config
+
+            tests -> Optional: Empty - pas de tests
+                               Just true - ya des tests
+
+            new OptionalTest(project)
+                .map(p-> p.runTests())
+
+            new Workflow(project)
+                .run( p -> p.hasTests(), p->runTests(), onSuccess, onFailure)
+                .map
+
+                Pipeline.Build(project)
+                    .test(success, failure)
+                    .deploy(success, failure)
+                    .sendMail(success, failure);
+
+            test(project)
+                .orNoTest()
+                .deploy(project)
+                .orNoDeploy()
+                .sendMail()
+                .orSendNothing();
+
+         */
         boolean testsPassed;
         boolean deploySuccessful;
 
