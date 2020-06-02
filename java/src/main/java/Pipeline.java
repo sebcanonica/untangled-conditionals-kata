@@ -14,55 +14,68 @@ public class Pipeline {
         this.log = log;
     }
 
-    public void run(Project project) {
-        boolean testsPassed = processTests(project);
-        boolean deploySuccessful = processDeploy(project, testsPassed);
-        processSummary(testsPassed, deploySuccessful);
+    interface Notifier {
+        void sendNotification(String message);
     }
 
-    private boolean processTests(Project project) {
+    class NotifierFactory {
+        Notifier build(Config config) {
+            if (config.sendEmailSummary()) return new EmailNotifier();
+            else return new NullNotifier();
+        }
+
+        class NullNotifier implements Notifier {
+            public void sendNotification(String message) {
+                log.info("Email disabled");
+            }
+        }
+
+        class EmailNotifier implements Notifier {
+            public void sendNotification(String message) {
+                log.info("Sending email");
+                emailer.send(message);
+            }
+        }
+    }
+
+    public void run(Project project) {
+        /*
+            hT -V-> rT -V-> d -V-> sES -V-> m1
+                                       -F-> lI
+                              -F-> sES -V-> m2
+                                       -F-> lI
+                       -F->        sES -V-> m3
+                                       -F-> lI
+               -F->         d -V-> sES -V-> m1
+                                       -F-> lI
+                              -F-> sES -V-> m2
+                                       -F-> lI
+         */
+
+        String status;
         if (project.hasTests()) {
             if ("success".equals(project.runTests())) {
                 log.info("Tests passed");
-                return true;
+                status = deploy(project);
             } else {
                 log.error("Tests failed");
-                return false;
+                status = "Tests failed";
             }
         } else {
             log.info("No tests");
-            return  true;
+            status = deploy(project);
         }
+
+        new NotifierFactory().build(config).sendNotification(status);
     }
 
-    private boolean processDeploy(Project project, boolean testsPassed) {
-        if (testsPassed) {
-            if ("success".equals(project.deploy())) {
-                log.info("Deployment successful");
-                return true;
-            } else {
-                log.error("Deployment failed");
-                return false;
-            }
+    private String deploy(Project project) {
+        if ("success".equals(project.deploy())) {
+            log.info("Deployment successful");
+            return "Deployment completed successfully";
         } else {
-            return false;
-        }
-    }
-
-    private void processSummary(boolean testsPassed, boolean deploySuccessful) {
-        if (config.sendEmailSummary()) {
-            log.info("Sending email");
-            if (testsPassed) {
-                if (deploySuccessful) {
-                    emailer.send("Deployment completed successfully");
-                } else {
-                    emailer.send("Deployment failed");
-                }
-            } else {
-                emailer.send("Tests failed");
-            }
-        } else {
-            log.info("Email disabled");
+            log.error("Deployment failed");
+            return "Deployment failed";
         }
     }
 }
