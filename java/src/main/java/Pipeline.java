@@ -23,28 +23,25 @@ public class Pipeline {
     }
 
     private Either<String, Project> test(Project project) {
-        if (project.hasTests()) {
-            if ("success".equals(project.runTests())) {
-                log.info("Tests passed");
-                return Either.right(project);
-            } else {
-                log.error("Tests failed");
-                return Either.left("Tests failed");
-            }
-        } else {
+        if (!project.hasTests()) {
             log.info("No tests");
             return Either.right(project);
         }
+        if ("success".equals(project.runTests())) {
+            log.info("Tests passed");
+            return Either.right(project);
+        }
+        log.error("Tests failed");
+        return Either.left("Tests failed");
     }
 
     private Either<String,Project> deploy(Project project) {
         if ("success".equals(project.deploy())) {
             log.info("Deployment successful");
             return Either.right(project);
-        } else {
-            log.error("Deployment failed");
-            return Either.left("Deployment failed");
         }
+        log.error("Deployment failed");
+        return Either.left("Deployment failed");
     }
 
     private Void notify(String message) {
